@@ -1,16 +1,22 @@
 import requests
+import sqlite3
 from flask import Flask
 from flask import request, Response
-from flask_restful import reqparse, abort, Api, Resource
+from flask_restful import Api, Resource
 from functools import wraps
+import hashlib
 
 
 app = Flask(__name__)
 api = Api(app)
 
-
 def check_auth(username, password):
-    return username == 'zz524' and password == 'pychvjkiyktrdcjvjk.l-098545wd5678913h4g1898oiuhbg9p1;i39-4g8ru'
+    with sqlite3.connect("/Users/Ricardo/PycharmProjects/emotion_detection_embedded/server/source/records.db") as conn:
+        cur = conn.cursor()
+        cur.execute("SELECT password_hash, salt FROM users WHERE user_name IS ?", (username, ))
+        saved_hash, salt = cur.fetchone()
+        password_hash = hashlib.pbkdf2_hmac('md5',password.encode(),salt,100000)
+    return password_hash == saved_hash
 
 
 def authenticate():
@@ -47,10 +53,10 @@ class photo(Resource):
         params = {
             'returnFaceId': 'true',
             'returnFaceLandmarks': 'false',
-            'returnFaceAttributes': 'age,gender,headPose,smile,facialHair,glasses,emotion,hair,makeup,occlusion,accessories,blur,exposure,noise',
+            'returnFaceAttributes': 'age,gender,headPose,smile,facialHair,glasses,emotion',
         }
-        response = requests.post(face_api_url,params=params,headers=headers,data=image)
-        faces = response.json()
+        azure_response = requests.post(face_api_url,params=params,headers=headers,data=image)
+        faces = azure_response.json()
         if len(faces) == 0:
             return {'received:': 1, 'emotion': None}
         emotion_scores = faces[0]['faceAttributes']['emotion']
