@@ -23,11 +23,8 @@ class User(object):
                          "VALUES (?,?,?);", tmp)
             conn.commit()
 
-user = User('zz524', 'hikuh8fg96t')
-user.add_salt()
-user.save_user()
-# conn.execute("SELECT * FROM users") #WHERE user_name = ?",name)
-# print(conn.cursor().fetchall())
-
-# conn.close()
-# user.save_user()
+def __main__():
+    user = User('zz524', 'hikuh8fg96t')
+    user.add_salt()
+    user.save_user()
+    

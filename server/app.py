@@ -1,4 +1,4 @@
-import requests
+import requests, time
 import sqlite3
 from flask import Flask
 from flask import request, Response
@@ -6,15 +6,19 @@ from flask_restful import Api, Resource
 from functools import wraps
 import hashlib
 
+db_path = "/Users/Ricardo/PycharmProjects/emotion_detection_embedded/server/source/records.db"
 
 app = Flask(__name__)
 api = Api(app)
 
+user_id = None
+
 def check_auth(username, password):
-    with sqlite3.connect("/Users/Ricardo/PycharmProjects/emotion_detection_embedded/server/source/records.db") as conn:
+    global user_id
+    with sqlite3.connect(db_path) as conn:
         cur = conn.cursor()
-        cur.execute("SELECT password_hash, salt FROM users WHERE user_name IS ?", (username, ))
-        saved_hash, salt = cur.fetchone()
+        cur.execute("SELECT user_id, password_hash, salt FROM users WHERE user_name IS ?", (username, ))
+        user_id, saved_hash, salt = cur.fetchone()
         password_hash = hashlib.pbkdf2_hmac('md5',password.encode(),salt,100000)
     return password_hash == saved_hash
 
@@ -66,6 +70,11 @@ class photo(Resource):
             if score > max_score:
                 max_score = score
                 emotion_detected = emotion
+        with sqlite3.connect(db_path) as conn:
+            cur = conn.cursor()
+            tmp = (user_id, emotion_detected, time.ctime())
+            cur.execute("INSERT INTO records (user_id, emotion, time_stamp)"\
+                         "VALUES (?,?,?);", tmp)
         return {'received:': 1, 'emotion': emotion_detected}
 
 
