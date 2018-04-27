@@ -1,0 +1,5 @@
+###### Requirements with Version Specifiers ######
+#   See https://www.python.org/dev/peps/pep-0440/#version-specifiers
+Flask == 0.10.1             # Version Matching. Must be version 0.6.1
+#sqlite
+Flask-RESTful  == 0.3.6

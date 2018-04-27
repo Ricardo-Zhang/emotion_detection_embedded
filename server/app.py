@@ -62,7 +62,7 @@ class photo(Resource):
         azure_response = requests.post(face_api_url,params=params,headers=headers,data=image)
         faces = azure_response.json()
         if len(faces) == 0:
-            return {'received:': 1, 'emotion': None}
+            return {'received:': 0, 'emotion': None}
         emotion_scores = faces[0]['faceAttributes']['emotion']
         max_score = 0
         print(faces)
