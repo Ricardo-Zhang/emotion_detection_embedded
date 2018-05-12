@@ -44,13 +44,12 @@ def requires_auth(f):
 
 
 class photo(Resource):
-    # @requires_auth
+    @requires_auth
     def post(self):
         face_api_url = 'https://westcentralus.api.cognitive.microsoft.com/face/v1.0/detect'
         data = request.files
         data = data['image']
         image = data.read()
-        print(type(image))
         subscription_key = "c27e306eb0b64d8f8f06bced4325a294"
         assert subscription_key
         headers = {'Content-Type': 'application/octet-stream',
@@ -82,4 +81,4 @@ class photo(Resource):
 api.add_resource(photo, '/photo')
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(host="0.0.0.0", debug=True, port=80)
