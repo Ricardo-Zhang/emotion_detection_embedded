@@ -8,3 +8,19 @@ integrated in the backend to provide analysis of emotion from photo of faces.</p
 both basic user information and emotion status records.</p>
 <p>HTTP Basic Authentication was implemented to ensure the safety of your data. Passwords are hashed with salt using the md5 algorithm and saved in the database.</p>
 <p>The entire system is deployed on <strong>Digital Ocean</strong> cloud utilizing <strong>Docker Container</strong> technology.</p>
+
+<h4>Embedded System</h4>
+<p>The entire system consists of 2 individual parts:</p>
+<ul>
+  <li>Emotion-Tracker for Photo Capturing</li>
+  <li>Player for Music Playing</li>
+</ul>
+<p>For the Emotion-Tracker, <strong>Adafruit Huzzah ESP8266</strong> was used as
+   the central controller controlling the <strong>Arducam Mini2</strong> and
+   the <strong>SD Card Reader</strong> through the SPI interface.</p>
+<p>The system would be taking one photo every 20 seconds, save the photo in
+the SD card first and then post it to the server through HTTP POST.</p>
+<p>An <strong>Arduino MKR1000</strong> serves as the micro-controller for the
+music player which get the detected emotions from the server via HTTP GET
+and then play the corresponding music in the SD card with the <strong>LM386</strong> amplifier and the
+speaker.</p>
