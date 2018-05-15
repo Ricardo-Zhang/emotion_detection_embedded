@@ -5,6 +5,7 @@ from flask import request, Response
 from flask_restful import Api, Resource
 from functools import wraps
 import hashlib
+import base64
 
 db_path = "source/records.db"
 
@@ -12,6 +13,8 @@ app = Flask(__name__)
 api = Api(app)
 
 user_id = None
+
+emotion_received = '0'
 
 def check_auth(username, password):
     global user_id
@@ -43,19 +46,22 @@ def requires_auth(f):
     return decorated
 
 
-@app.route("/")
-def hello():
-    return "Hello World!"
+#@app.route("/")
+#def hello():
+    #return emotion_received
 
+class data(Resource):
+    def get(self):
+        return emotion_received
 
 class photo(Resource):
-    # @requires_auth
+#    @requires_auth
     def post(self):
+        global emotion_received
         face_api_url = 'https://westcentralus.api.cognitive.microsoft.com/face/v1.0/detect'
         data = request.files
-        data = data['image']
-        image = data.read()
-        print(type(image))
+        image = data['image']
+        image = image.read()
         subscription_key = "c27e306eb0b64d8f8f06bced4325a294"
         assert subscription_key
         headers = {'Content-Type': 'application/octet-stream',
@@ -67,24 +73,32 @@ class photo(Resource):
         }
         azure_response = requests.post(face_api_url,params=params,headers=headers,data=image)
         faces = azure_response.json()
+        print(faces)
         if len(faces) == 0:
-            return {'received:': 0, 'emotion': None}
+            emotion_received = '0'
+            return '0'
+            #return {'received:': 0, 'emotion': None}
         emotion_scores = faces[0]['faceAttributes']['emotion']
         max_score = 0
-        print(faces)
         for emotion, score in emotion_scores.items():
             if score > max_score:
                 max_score = score
                 emotion_detected = emotion
-        with sqlite3.connect(db_path) as conn:
-            cur = conn.cursor()
-            tmp = (user_id, emotion_detected, time.ctime())
-            cur.execute("INSERT INTO records (user_id, emotion, time_stamp)"\
-                         "VALUES (?,?,?);", tmp)
-        return {'received:': 1, 'emotion': emotion_detected}
+        if emotion_detected == "happiness":
+            emotion_received = '1'
+            return '1'
+        else:
+            emotion_received = '2'
+            return '2'
+        #with sqlite3.connect(db_path) as conn:
+        #    cur = conn.cursor()
+        #    tmp = (user_id, emotion_detected, time.ctime())
+        #    cur.execute("INSERT INTO records (user_id, emotion, time_stamp)"\
+        #                 "VALUES (?,?,?);", tmp)
+        #return {'received:': 1, 'emotion': emotion_detected}
 
 
 api.add_resource(photo, '/photo')
-
+api.add_resource(data, '/data')
 if __name__ == '__main__':
     app.run(host="0.0.0.0",debug=True)
