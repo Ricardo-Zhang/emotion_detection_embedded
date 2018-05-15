@@ -6,7 +6,7 @@ from flask_restful import Api, Resource
 from functools import wraps
 import hashlib
 
-db_path = "/Users/Ricardo/PycharmProjects/emotion_detection_embedded/server/source/records.db"
+db_path = "source/records.db"
 
 app = Flask(__name__)
 api = Api(app)
@@ -41,6 +41,11 @@ def requires_auth(f):
             return authenticate()
         return f(*args, **kwargs)
     return decorated
+
+
+@app.route("/")
+def hello():
+    return "Hello World!"
 
 
 class photo(Resource):
@@ -82,4 +87,4 @@ class photo(Resource):
 api.add_resource(photo, '/photo')
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(host="0.0.0.0",debug=True)
