@@ -22,20 +22,13 @@
 #include <ArduCAM.h>
 #include <SPI.h>
 #include <SD.h>
+
 #include "memorysaver.h"
-#if !(defined ESP8266 )
-#error Please select the ArduCAM ESP8266 UNO board in the Tools/Board
-#endif
 
 //This demo can only work on OV2640_MINI_2MP or ARDUCAM_SHIELD_V2 platform.
-#if !(defined (OV2640_MINI_2MP)||defined (OV5640_MINI_5MP_PLUS) || defined (OV5642_MINI_5MP_PLUS) \
-    || defined (OV5642_MINI_5MP) || defined (OV5642_MINI_5MP_BIT_ROTATION_FIXED) \
-    ||(defined (ARDUCAM_SHIELD_V2) && (defined (OV2640_CAM) || defined (OV5640_CAM) || defined (OV5642_CAM))))
-#error Please select the hardware platform and camera module in the ../libraries/ArduCAM/memorysaver.h file
-#endif
 // set GPIO16 as the slave select :
-const int CS = 16;
-//Version 1,set GPIO1 as the slave select :
+const int CS = 15;
+//Version 1,set GPIO2 as the slave select :
 const int SD_CS = 2;
 
 //host
@@ -53,7 +46,7 @@ const char *AP_ssid = "arducam_esp8266";
 const char *AP_password = "";
 
 //Station mode you should put your ssid and password
-const char *ssid = "RedRover"; // Put your SSID here
+const char *ssid = "The House"; // Put your SSID here
 const char *password = ""; // Put your PASSWORD here
 
 static const size_t bufferSize = 4096;
@@ -67,13 +60,9 @@ static int k = 0;
 char str[8];
 
 ESP8266WebServer server(80);
-#if defined (OV2640_MINI_2MP) || defined (OV2640_CAM)
+
 ArduCAM myCAM(OV2640, CS);
-#elif defined (OV5640_MINI_5MP_PLUS) || defined (OV5640_CAM)
-ArduCAM myCAM(OV5640, CS);
-#elif defined (OV5642_MINI_5MP_PLUS) || defined (OV5642_MINI_5MP) || defined (OV5642_MINI_5MP_BIT_ROTATION_FIXED) ||(defined (OV5642_CAM))
-ArduCAM myCAM(OV5642, CS);
-#endif
+
 
 #define MTU_Size    2*1460  // this size seems to work best
 // file sending from SD card
@@ -88,10 +77,10 @@ int zenklas2   = 0;
 #define echoPin 13
 int sensor = 0;
 
-int song_number=0;
-long duration1,distance1;
-long duration2,distance2;
-
+int frequency=1000; //Specified in Hz
+int buzzPin=0; 
+int timeOn=1000; //specified in milliseconds
+int timeOff=1000; //specified in millisecods
 
 WiFiClient client;
 
@@ -118,9 +107,6 @@ void camCapture(ArduCAM myCAM) {
   }
   myCAM.CS_LOW();
   myCAM.set_fifo_burst();
-//  if (!client.connected()) return;
-
-
 
   String start_request = "";
   String end_request = "";
@@ -133,6 +119,7 @@ void camCapture(ArduCAM myCAM) {
   full_length = start_request.length() + len + end_request.length();
   client.println("POST /photo HTTP/1.1"); 
   client.println("Host: 206.189.200.72:5000"); 
+  client.println("Authorization: Basic eno1MjQ6aGlrdWg4Zmc5NnQ=");
   client.println("Content-Type: multipart/form-data; boundary=AaB03x"); 
   client.print("Content-Length: "); 
   client.println(full_length); 
@@ -332,11 +319,12 @@ void setup() {
   //Initialize SD Card
   if(!SD.begin(SD_CS)){
     Serial.println(F("SD Card Error"));
+//    while (1);
   }
   else
   Serial.println(F("SD Card detected!"));
    
-#if defined (OV2640_MINI_2MP) || defined (OV2640_CAM)
+
   //Check if the camera module type is OV2640
   myCAM.wrSensorReg8_8(0xff, 0x01);
   myCAM.rdSensorReg8_8(OV2640_CHIPID_HIGH, &vid);
@@ -345,42 +333,22 @@ void setup() {
     Serial.println(F("Can't find OV2640 module!"));
   else
     Serial.println(F("OV2640 detected."));
-#elif defined (OV5640_MINI_5MP_PLUS) || defined (OV5640_CAM)
-  //Check if the camera module type is OV5640
-  myCAM.wrSensorReg16_8(0xff, 0x01);
-  myCAM.rdSensorReg16_8(OV5640_CHIPID_HIGH, &vid);
-  myCAM.rdSensorReg16_8(OV5640_CHIPID_LOW, &pid);
-  if ((vid != 0x56) || (pid != 0x40))
-    Serial.println(F("Can't find OV5640 module!"));
-  else
-    Serial.println(F("OV5640 detected."));
-#elif defined (OV5642_MINI_5MP_PLUS) || defined (OV5642_MINI_5MP) || defined (OV5642_MINI_5MP_BIT_ROTATION_FIXED) ||(defined (OV5642_CAM))
-  //Check if the camera module type is OV5642
-  myCAM.wrSensorReg16_8(0xff, 0x01);
-  myCAM.rdSensorReg16_8(OV5642_CHIPID_HIGH, &vid);
-  myCAM.rdSensorReg16_8(OV5642_CHIPID_LOW, &pid);
-  if ((vid != 0x56) || (pid != 0x42)) {
-    Serial.println(F("Can't find OV5642 module!"));
-  }
-  else
-    Serial.println(F("OV5642 detected."));
-#endif
+
   //Change to JPEG capture mode and initialize the OV2640 module
   myCAM.set_format(JPEG);
   myCAM.InitCAM();
-#if defined (OV2640_MINI_2MP) || defined (OV2640_CAM)
+
   myCAM.OV2640_set_JPEG_size(OV2640_320x240);
-#elif defined (OV5640_MINI_5MP_PLUS) || defined (OV5640_CAM)
-  myCAM.write_reg(ARDUCHIP_TIM, VSYNC_LEVEL_MASK);   //VSYNC is active HIGH
-  myCAM.OV5640_set_JPEG_size(OV5640_320x240);
-#elif defined (OV5642_MINI_5MP_PLUS) || defined (OV5642_MINI_5MP) || defined (OV5642_MINI_5MP_BIT_ROTATION_FIXED) ||(defined (OV5642_CAM))
-  myCAM.write_reg(ARDUCHIP_TIM, VSYNC_LEVEL_MASK);   //VSYNC is active HIGH
-  myCAM.OV5640_set_JPEG_size(OV5642_320x240);
-#endif
+
 delay(1000);
   myCAM.clear_fifo_flag();
 
   connect_wifi();
+
+//  pinMode(rxPin, INPUT);
+//  pinMode(txPin, OUTPUT);
+  // set the data rate for the SoftwareSerial port
+//  mySerial.begin(9600);
 }
 void sd2server(){
   File img_file;
@@ -431,52 +399,62 @@ void sd2server(){
     }
   client.println(end_request);
   }
-  Serial.println("fuck you!"); 
+  Serial.println("request sent!"); 
   delay(2000);
   while (client.available()){
     char a = client.read();
-    if (a=='\"'){
-      b = client.read();
-      break;
-    }
     Serial.print(a);
+//    if (a=='\"'){
+//      b = client.read();
+//      break;
+//    }
+//    Serial.print(a);
   }
   // dealing with all read
   while (client.available()){
     client.read();
   }
-  Serial.print("final outcome:");
+  Serial.print("emotion outcome:");
   Serial.println(b);
+  playmusic(b);
 }
+
+void playmusic(char mode){
+  if (mode == '1'){
+    delay(100);
+    Serial.println("music 1.wav instruction sent");
+    tone(buzzPin, frequency);
+    delay(timeOn);
+    noTone(buzzPin);
+    delay(timeOff);
+  }
+  if (mode == '2'){
+    delay(100);
+    Serial.println("music 2.wav instruction sent");
+    tone(buzzPin, frequency);
+    delay(timeOn);
+    noTone(buzzPin);
+    delay(timeOff);
+  }
+  else{
+    return;
+    Serial.println("No Music");
+  }
+}
+
 void loop() {
-  digitalWrite(trigPin, LOW);
-  delayMicroseconds(2);
-
-  digitalWrite(trigPin,HIGH);
-  delayMicroseconds(10);
-  digitalWrite(trigPin,LOW);
-  duration1= pulseIn(echoPin,HIGH);
-  distance1 = duration1*0.34/2; 
-//  distance = distance/10;
-//  Serial.print("Distance1:");
-  Serial.println(distance1);
-
-  delay(100);
-  digitalWrite(trigPin, LOW);
-  delayMicroseconds(2);
-  digitalWrite(trigPin,HIGH);
-  delayMicroseconds(10);
-  digitalWrite(trigPin,LOW);
-  duration2 = pulseIn(echoPin,HIGH);
-  distance2 = duration2*0.34/2;
-  
-  if (600<distance1 && distance1<1500 && distance2>600 && distance2<1500){
-      Serial.print("people detected");
+//  if (mySerial.available()<=0){
+    delay(1000);
+//  }
+//  else{
+//    char received = mySerial.read();
+//    if (received =='1'){
+      Serial.print("got trigger");
       myCAMSaveToSDFile();
-      delay(5000);
+      delay(2000);
       sd2server();
       delay(15000);
-    }
-  delay(100);
+//    }
+//  }
 }
 

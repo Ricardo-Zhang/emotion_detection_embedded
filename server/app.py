@@ -55,7 +55,7 @@ class data(Resource):
         return emotion_received
 
 class photo(Resource):
-#    @requires_auth
+   @requires_auth
     def post(self):
         global emotion_received
         face_api_url = 'https://westcentralus.api.cognitive.microsoft.com/face/v1.0/detect'
